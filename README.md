@@ -5,6 +5,7 @@ Week 13 Lab for MCTC's Web Client and Server Programming class.
 Deployed here at:
 
 ```
+http://student-sign-in-webapp-mostlyrice.azurewebsites.net
 
 ```
 

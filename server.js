@@ -5,7 +5,7 @@ let path = require('path')
 // create web application
 let app = express()
 
-let vueClientPath = path.join(__dirname, 'student-sign-in-client', 'dist')
+let vueClientPath = path.join(__dirname, 'student-sign-in', 'dist')
 app.use(express.static(vueClientPath))
 
 // be able to handle JSON requests, convert data to JavaScript

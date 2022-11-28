@@ -1,13 +1,15 @@
 <template>
   <div id="app">
-    <h1 id="app-header">Reformated Student Sign-in Form</h1>
-    <new-student-form v-on:student-added="newStudentAdded"></new-student-form>
-    <student-table 
-      v-bind:students="students"
-      v-on:student-arrived-or-left="studentArrivedOrLeft"
+    
+    <h1>Student Sign In</h1>
+
+    <NewStudentForm v-on:student-added="newStudentAdded"></NewStudentForm>
+    <StudentTable
+      v-bind:students="students" 
+      v-on:student-present="studentArrivedOrLeft"
       v-on:delete-student="studentDeleted">
-    </student-table>
-    <student-message v-bind:student="mostRecentStudent"></student-message>
+    </StudentTable>
+    <StudentMessage v-bind:student="mostRecentStudent"></StudentMessage>
 
   </div>
 </template>
@@ -18,74 +20,76 @@ import StudentTable from './components/StudentTable.vue'
 import StudentMessage from './components/StudentMessage.vue'
 
 export default {
-  name: 'App',  
-    components: {
-    NewStudentForm,
-    StudentTable,
-    StudentMessage,
-
-  },
+  name: 'app',
   data() {
     return {
-      students: [
-        { name: 'A. Student', 'starID': 'aa1234bb', present: true },
-        { name: 'B. Student', 'starID': 'cc4567dd', present: false },
-        { name: 'C. Student', 'starID': 'ee8910ff', present: false },
-      ],
+      students: [],
       mostRecentStudent: {}
     }
   },
-
+  components: {
+    NewStudentForm,
+    StudentTable,
+    StudentMessage
+  },
+  mounted() {
+    // load all students - make request to API
+    this.updateStudents()
+  },
   methods: {
-    newStudentAdded(student) {
-        this.students.push(student)
-        this.students.sort(function(s1, s2) {
-          return s1.name.toLowerCase() < s2.name.toLowerCase() ? -1 : 1
-        })
+    updateStudents() {
+      this.$student_api.getAllStudents().then( students => {
+        this.students = students
+        // this.students is the vue data
+        // students is students that is returned from the API
+      }).catch( err => {
+        console.error('Error getting most recent student list', err.response)
+        alert('Sorry, unable to fetch stuent list')
+      })
     },
-    studentArrivedOrLeft(student, present) {
-      // find student in this.students, set prsent value
-      let updateStudent = this.students.find( function(s) {
-        if (s.name === student.name && s.starID === student.starID) {
-          // this is the student to update
-          return true
+    newStudentAdded(student) {
+      this.$student_api.addStudent(student).then( () => {
+        this.updateStudents()
+      }).catch ( err => {
+        console.log('Error fetching student list', err)
+        
+        // if data is returned from the server-- it's an array
+        if (err.response.data && Array.isArray(err.response.data)) {
+          let msg = err.response.data.join(',')
+          alert('Error adding student\n' + msg)
+        } else {
+          // something else wrong-- display generic error
+          console.error('Error adding student', err.response)
+          alert('Sorry, unable to add student')
         }
       })
-
-      if (updateStudent) {
-        updateStudent.present = present
-        this.mostRecentStudent = updateStudent
-      }
     },
-  // },  // close curly brace needs to be moved
-  studentDeleted(student) {  
-    // filter will check every student in the students array -- another method that could be used here: splice
-    this.students = this.students.filter( function(s) {
-      if (s != student) {
-        return true
-      }
-    })
+    studentArrivedOrLeft(student, present) {
+      student.present = present // update present value
+      this.$student_api.updateStudent(student).then( () => {
+        this.mostRecentStudent = student
+        this.updateStudents()
+      }).catch( err => {
+        console.error('Error updating student', err.response)
+        alert('Unable to update student')
+      })
+    },
+    studentDeleted(student) {
+      this.$student_api.deleteStudent(student.id).then( () => {
+        this.updateStudents()
+        this.mostRecentStudent = {} // clear welcome/goodbye message
+      }).catch( err => {
+        console.error('Error deleting student', err.response)
+        alert('Unable to delete student')
 
-    // clear welcome/goodbye message
-    this.mostRecentStudent = {}
+      })
+    }
   }
-  }   // end of methods. 
 }
 </script>
 
 <style>
 
-@import "https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css";
+@import "https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css";
 
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-
-#app-header{
-  text-align: center;
-}
 </style>
